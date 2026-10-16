@@ -1,0 +1,228 @@
+
+@page "/articulos"
+@rendermode InteractiveServer
+
+@using Ferreteria.Blazor.Modelos
+@using Ferreteria.Blazor.Servicios
+@using Microsoft.AspNetCore.Components.Forms
+@inject ServicioArticulosWeb Servicio
+
+<PageTitle>Artículos</PageTitle>
+
+<h1>Inventario de la ferretería</h1>
+
+<p>Consulta y administra los artículos de la ferretería.</p>
+
+@if (cargando)
+{
+    <p>Cargando artículos...</p>
+}
+else if (!string.IsNullOrWhiteSpace(mensajeError))
+{
+    <p role="alert">@mensajeError</p>
+    <button @onclick="CargarArticulosAsync">Reintentar</button>
+}
+else
+{
+    <h2>Artículos registrados</h2>
+
+    @if (articulos.Count == 0)
+    {
+        <p>Todavía no hay artículos registrados.</p>
+    }
+    else
+    {
+        <table class="table">
+            <thead>
+                <tr>
+                    <th>Nombre</th>
+                    <th>Precio</th>
+                    <th>Stock</th>
+                    <th>Acciones</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var articulo in articulos)
+                {
+                    <tr>
+                        <td>@articulo.Nombre</td>
+                        <td>@articulo.Precio.ToString("N2")</td>
+                        <td>@articulo.Stock</td>
+                        <td>
+                            <button
+                                @onclick="() => PrepararEdicion(articulo)">
+                                Editar
+                            </button>
+
+                            <button
+                                @onclick="() => EliminarArticuloAsync(articulo.Id)">
+                                Eliminar
+                            </button>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    }
+}
+
+<hr />
+
+<h2>@(articuloEnEdicion.Id == 0
+    ? "Agregar artículo"
+    : "Editar artículo")</h2>
+
+<EditForm Model="articuloEnEdicion"
+          OnValidSubmit="GuardarArticuloAsync"
+          FormName="formularioArticulo">
+    <div class="mb-3">
+        <label for="nombre">Nombre</label>
+        <InputText id="nombre"
+                   class="form-control"
+                   @bind-Value="articuloEnEdicion.Nombre" />
+    </div>
+
+    <div class="mb-3">
+        <label for="precio">Precio</label>
+        <InputNumber id="precio"
+                     class="form-control"
+                     @bind-Value="articuloEnEdicion.Precio" />
+    </div>
+
+    <div class="mb-3">
+        <label for="stock">Stock</label>
+        <InputNumber id="stock"
+                     class="form-control"
+                     @bind-Value="articuloEnEdicion.Stock" />
+    </div>
+
+    <button type="submit" disabled="@guardando">
+        @(guardando ? "Guardando..." : "Guardar")
+    </button>
+
+    @if (articuloEnEdicion.Id != 0)
+    {
+        <button type="button" @onclick="CancelarEdicion">
+            Cancelar
+        </button>
+    }
+</EditForm>
+
+@if (!string.IsNullOrWhiteSpace(mensaje))
+{
+    <p role="status">@mensaje</p>
+}
+
+@code {
+    private List<ArticuloWeb> articulos = new();
+
+    private ArticuloWeb articuloEnEdicion = new();
+
+    private bool cargando = true;
+    private bool guardando = false;
+
+    private string mensaje = "";
+    private string mensajeError = "";
+
+    protected override async Task OnInitializedAsync()
+    {
+        await CargarArticulosAsync();
+    }
+
+    private async Task CargarArticulosAsync()
+    {
+        cargando = true;
+        mensajeError = "";
+
+        try
+        {
+            articulos = await Servicio.ObtenerTodosAsync();
+        }
+        catch (Exception)
+        {
+            mensajeError =
+                "No se pudieron cargar los artículos. Comprueba que la API esté funcionando.";
+        }
+        finally
+        {
+            cargando = false;
+        }
+    }
+
+    private void PrepararEdicion(ArticuloWeb articulo)
+    {
+        articuloEnEdicion = new ArticuloWeb
+        {
+            Id = articulo.Id,
+            Nombre = articulo.Nombre,
+            Precio = articulo.Precio,
+            Stock = articulo.Stock
+        };
+
+        mensaje = "";
+        mensajeError = "";
+    }
+
+    private void CancelarEdicion()
+    {
+        articuloEnEdicion = new ArticuloWeb();
+        mensaje = "";
+        mensajeError = "";
+    }
+
+    private async Task GuardarArticuloAsync()
+    {
+        guardando = true;
+        mensaje = "";
+        mensajeError = "";
+
+        try
+        {
+            if (articuloEnEdicion.Id == 0)
+            {
+                await Servicio.CrearAsync(articuloEnEdicion);
+                mensaje = "El artículo se creó correctamente.";
+            }
+            else
+            {
+                await Servicio.ActualizarAsync(
+                    articuloEnEdicion.Id,
+                    articuloEnEdicion);
+
+                mensaje = "El artículo se actualizó correctamente.";
+            }
+
+            articuloEnEdicion = new ArticuloWeb();
+
+            await CargarArticulosAsync();
+        }
+        catch (Exception)
+        {
+            mensajeError =
+                "No se pudo guardar el artículo. Comprueba que la API esté funcionando.";
+        }
+        finally
+        {
+            guardando = false;
+        }
+    }
+
+    private async Task EliminarArticuloAsync(int id)
+    {
+        mensaje = "";
+        mensajeError = "";
+
+        try
+        {
+            await Servicio.EliminarAsync(id);
+            mensaje = "El artículo se eliminó correctamente.";
+
+            await CargarArticulosAsync();
+        }
+        catch (Exception)
+        {
+            mensajeError =
+                "No se pudo eliminar el artículo. Comprueba que todavía exista.";
+        }
+    }
+}

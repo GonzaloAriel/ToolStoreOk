@@ -1,0 +1,6 @@
+@FerreteriaApi_HostAddress = http://localhost:5287
+
+GET {{FerreteriaApi_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###

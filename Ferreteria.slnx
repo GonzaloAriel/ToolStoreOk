@@ -1,0 +1,8 @@
+<Solution>
+  <Project Path="Ferreteria.Aplicacion/Ferreteria.Aplicacion.csproj" />
+  <Project Path="Ferreteria.Blazor/Ferreteria.Blazor.csproj" />
+  <Project Path="Ferreteria.Dominio/Ferreteria.Dominio.csproj" />
+  <Project Path="Ferreteria.Infraestructura/Ferreteria.Infraestructura.csproj" />
+  <Project Path="Ferreteria.Pruebas/Ferreteria.Pruebas.csproj" />
+  <Project Path="FerreteriaApi/FerreteriaApi.csproj" />
+</Solution>
